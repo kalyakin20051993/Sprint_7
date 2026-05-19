@@ -1,28 +1,19 @@
+import com.google.gson.Gson;
 import io.qameta.allure.Step;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class CreateOrderTests {
+public class CreateOrderTests extends BaseTest {
     private Integer track;
-
-    @BeforeAll
-    public static void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
-    }
 
     @AfterEach
     public void cancelOrderAfterTest() {
@@ -43,26 +34,26 @@ public class CreateOrderTests {
 
     @Step("Создание заказа: color={colors}")
     public Response createOrder(String[] colors) {
-        String json = "{"
-                + "\"color\": " + colorsToJsonArray(colors)
-                + "}";
+        Order order = new Order(colors);
+        String json = new Gson().toJson(order);
 
         return given()
                 .header("Content-type", "application/json")
                 .body(json)
                 .when()
-                .post("/api/v1/orders");
+                .post(Endpoints.ORDERS);
     }
 
     @Step("Отмена заказа с track={track}")
     public void cancelOrder(int track) {
-        String json = "{\"track\": " + track + "}";
+        Order order = new Order(track);
+        String json = new Gson().toJson(order);
 
         given()
                 .header("Content-type", "application/json")
                 .body(json)
                 .when()
-                .put("/api/v1/orders/cancel");
+                .put(Endpoints.ORDERS_CANCEL);
     }
 
     @Step("Тело ответа содержит track")
@@ -70,13 +61,6 @@ public class CreateOrderTests {
         response.then().assertThat()
                 .statusCode(201)
                 .body("track", notNullValue());
-    }
-
-
-    private String colorsToJsonArray(String[] colors) {
-        return Arrays.stream(colors)
-                .map(color -> "\"" + color + "\"")
-                .collect(Collectors.joining(",", "[", "]"));
     }
 
     static Stream<Arguments> orderColorData() {

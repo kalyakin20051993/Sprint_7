@@ -1,23 +1,18 @@
 import io.qameta.allure.Step;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-public class LoginCourierTests {
+public class LoginCourierTests extends BaseTest {
 
     private String login;
     private String password;
 
-    @BeforeAll
-    public static void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
-    }
+    Client client = new Client();
 
     @BeforeEach
     public void createTestCourier() {
@@ -25,7 +20,7 @@ public class LoginCourierTests {
         password = "1234567890";
         String name = "Andrey";
 
-        createCourier(login, password, name)
+        client.createCourier(login, password, name)
                 .then()
                 .statusCode(201)
                 .body("ok", equalTo(true));
@@ -34,7 +29,7 @@ public class LoginCourierTests {
     @Test
     @DisplayName("Авторизация с позитивным логином и паролем")
     public void loginCourierPositive() {
-        Response response = loginCourier(login, password);
+        Response response = client.loginCourier(login, password);
         bodyPositive(response);
     }
 
@@ -44,7 +39,7 @@ public class LoginCourierTests {
     public void courierLoginWithoutOneField(String missingField) {
         String requestLogin = missingField.equals("login") ? null : login;
         String requestPassword = missingField.equals("password") ? null : password;
-        Response response = loginCourier(requestLogin, requestPassword);
+        Response response = client.loginCourier(requestLogin, requestPassword);
         bodyNegativeWithoutField(response);
     }
 
@@ -58,45 +53,9 @@ public class LoginCourierTests {
         String requestPassword = wrongField.equals("password")
                 ? password + RandomStringUtils.randomAlphanumeric(10)
                 : password;
-        Response response = loginCourier(requestLogin, requestPassword);
+        Response response = client.loginCourier(requestLogin, requestPassword);
 
         bodyNegativeWrongData(response);
-    }
-
-    @Step("Создание курьера: login={login}, password={password}, name={name}")
-    public Response createCourier(String login, String password, String name) {
-        String json = "{"
-                + "\"login\": " + toJsonValue(login) + ","
-                + "\"password\": " + toJsonValue(password) + ","
-                + "\"firstName\": " + toJsonValue(name)
-                + "}";
-
-        return given()
-                .header("Content-type", "application/json")
-                .body(json)
-                .when()
-                .post("/api/v1/courier");
-    }
-
-    @Step("Логин курьера: login={login}, password={password}")
-    public Response loginCourier(String login, String password) {
-        String json = "{"
-                + "\"login\": " + toJsonValue(login) + ","
-                + "\"password\": " + toJsonValue(password)
-                + "}";
-
-        return given()
-                .header("Content-type", "application/json")
-                .body(json)
-                .when()
-                .post("/api/v1/courier/login");
-    }
-
-    @Step("Удаление курьера с id={courierId}")
-    public Response deleteCourier(int courierId) {
-        return given()
-                .when()
-                .delete("/api/v1/courier/" + courierId);
     }
 
     @Step("Проверка успешного логина курьера")
@@ -122,14 +81,10 @@ public class LoginCourierTests {
 
     @AfterEach
     public void deleteTestCourier() {
-        Response loginResponse = loginCourier(login, password);
+        Response loginResponse = client.loginCourier(login, password);
         if (loginResponse.statusCode() == 200) {
             int courierId = loginResponse.then().extract().path("id");
-            deleteCourier(courierId);
+            client.deleteCourier(courierId);
         }
-    }
-
-    private String toJsonValue(String value) {
-        return value == null ? "null" : "\"" + value + "\"";
     }
 }

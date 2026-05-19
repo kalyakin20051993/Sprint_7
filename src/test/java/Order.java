@@ -1,5 +1,3 @@
-package pojo;
-
 class Order {
     private String[] color;
     private int track;
