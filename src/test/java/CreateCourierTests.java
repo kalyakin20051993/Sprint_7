@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import io.qameta.allure.Step;
 import io.qameta.allure.Description;
 import org.junit.jupiter.api.AfterEach;
@@ -85,11 +86,8 @@ public class CreateCourierTests {
 
     @Step("Создание курьера: login={login}, password={password}, name={name}")
     public Response createCourier(String login, String password, String name) {
-        String json = "{"
-                + "\"login\": " + toJsonValue(login) + ","
-                + "\"password\": " + toJsonValue(password) + ","
-                + "\"firstName\": " + toJsonValue(name)
-                + "}";
+        Courier courier = new Courier(login, password, name);
+        String json = new Gson().toJson(courier);
 
         return given()
                 .header("Content-type", "application/json")
@@ -107,10 +105,8 @@ public class CreateCourierTests {
 
     @Step("Логин курьера для получения id: login={login}")
     public Response loginCourier(String login, String password) {
-        String json = "{"
-                + "\"login\": " + toJsonValue(login) + ","
-                + "\"password\": " + toJsonValue(password)
-                + "}";
+        Courier courier = new Courier(login, password);
+        String json = new Gson().toJson(courier);
 
         return given()
                 .header("Content-type", "application/json")
@@ -124,10 +120,6 @@ public class CreateCourierTests {
         return given()
                 .when()
                 .delete("/api/v1/courier/" + courierId);
-    }
-
-    private String toJsonValue(String value) {
-        return value == null ? "null" : "\"" + value + "\"";
     }
 
     static Stream<Arguments> courierWithoutOneFieldData() {
